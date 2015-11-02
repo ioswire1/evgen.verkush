@@ -10,51 +10,82 @@
 #import "PlayingCardDesk.h"
 #import "Card.h"
 #import "PlayingCard.h"
+#import "CardMatchingGame.h"
 
 @interface ViewController ()
 
-@property (weak, nonatomic) IBOutlet UILabel *flipsLabel;
-@property (nonatomic) int flipCount;
-
-@property (nonatomic, strong) PlayingCardDesk *playingCardDesk;
+@property (nonatomic, strong) IBOutletCollection(UIButton) NSArray *cardButtons;
+@property (nonatomic, strong) CardMatchingGame *game;
+@property (nonatomic, weak) IBOutlet UILabel *scoreLabel;
+@property (weak, nonatomic) IBOutlet UISegmentedControl *numOfCardsSegemntedConrol;
 
 @end
 
 @implementation ViewController
 
-- (void)viewDidLoad {
-    self.playingCardDesk = [[PlayingCardDesk alloc] init];
+- (Desk *)createDesk {
+    return [[PlayingCardDesk alloc] init];
 }
 
-- (void) setFlipCount:(int)flipCount {
-    _flipCount = flipCount;
-    self.flipsLabel.text = [NSString stringWithFormat:@"Flips: %d", _flipCount];
+- (CardMatchingGame *)game {
+    if (!_game) {
+        _game = [[CardMatchingGame alloc] initWithCardCount:[self.cardButtons count]
+                                                  usingDesk:[self createDesk]];
+    }
+    return _game;
 }
 
 - (IBAction)touchCardButton:(UIButton *)sender {
-    if ([sender.currentTitle length] > 0) {
-        [sender setBackgroundImage:[UIImage imageNamed:@"cardback"]
-                          forState:UIControlStateNormal];
-        [sender setTitle:@"" forState:UIControlStateNormal];
-    } else {
-        Card *card = [self.playingCardDesk drawRandomCard];
-        if (card != nil) {
-            [sender setBackgroundImage:[UIImage imageNamed:@"cardholder"]
-                              forState:UIControlStateNormal];
-            [sender setTitle:card.contents forState:UIControlStateNormal];
-            if ([card isKindOfClass:[PlayingCard class]]) {
-                [sender setTitleColor:((PlayingCard *)card).color forState:UIControlStateNormal];
-            }
-        } else {
-            [sender setBackgroundImage:[UIImage imageNamed:@"crossedredcircle"]
-                              forState:UIControlStateNormal];
-            [sender setTitle:@"" forState:UIControlStateNormal];
-        }
-    }
-    
-    self.flipCount++;
+    NSUInteger choosenCardIndex = [self.cardButtons indexOfObject:sender];
+    [self.game chooseCardAtIndex:choosenCardIndex];
+    [self updateUI];
 }
 
-- (void)myMethod:(NSString *)s1 wish
+- (void)updateUI {
+    for (UIButton *cardButton in self.cardButtons) {
+        NSUInteger cardButtonIndex = [self.cardButtons indexOfObject:cardButton];
+        Card *card = [self.game cardAtIndex:cardButtonIndex];
+        [cardButton setTitle:[self titleForCard:card] forState:UIControlStateNormal];
+        [cardButton setBackgroundImage:[self backgroundImageForCard:card] forState:UIControlStateNormal];
+        if ([card isKindOfClass:[PlayingCard class]]) {
+            [cardButton setTitleColor:((PlayingCard *)card).color forState:UIControlStateNormal];
+        }
+
+        cardButton.enabled = !card.isMatched;
+        self.scoreLabel.text = [NSString stringWithFormat:@"Score: %ld", (long)self.game.score];
+    }
+}
+
+- (NSString *)titleForCard:(Card *)card {
+    return card.isChosen ? card.contents : @"";
+}
+
+- (UIImage *)backgroundImageForCard:(Card *)card {
+    return [UIImage imageNamed:card.isChosen ? @"cardholder" : @"cardback"];
+}
+
+- (IBAction)touchStartButton:(id)sender {
+    self.game = [[CardMatchingGame alloc] initWithCardCount:[self.cardButtons count]
+                                                  usingDesk:[self createDesk]
+                                             numbeOfMatches:[self numberOfCardsToMatch]];
+    [self updateUI];
+}
+
+- (int)numberOfCardsToMatch {
+    int numberOfCardsToMatch;
+    switch (self.numOfCardsSegemntedConrol.selectedSegmentIndex) {
+        case 1:
+            numberOfCardsToMatch = 3;
+            break;
+        case 2:
+            numberOfCardsToMatch = 4;
+            break;
+        case 0:
+        default:
+            numberOfCardsToMatch = 2;
+            break;
+    }
+    return numberOfCardsToMatch;
+}
 
 @end

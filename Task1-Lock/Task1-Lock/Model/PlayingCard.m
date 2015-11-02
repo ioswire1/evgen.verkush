@@ -50,4 +50,32 @@
     return color;
 }
 
+
+- (int)match:(NSArray *)otherCards {
+    int score = 0;
+    
+    for (PlayingCard *otherCard in otherCards) {
+        score += [self matchWithOneCard:otherCard];
+    }
+    
+    return score;
+}
+
+- (int)matchWithOneCard:(PlayingCard *)otherCard {
+    int score = 0;
+    if (otherCard.rank == self.rank) {
+        score = 4;
+    } else if (otherCard.suit == self.suit) {
+        score = 1;
+    }
+    
+    if (score > 0) {
+        otherCard.matched = YES;
+        self.matched = YES;
+    }
+    
+    return score;
+}
+
+
 @end
